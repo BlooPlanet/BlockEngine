@@ -2,29 +2,30 @@ using System.Collections.Generic;
 using UnityEngine;
 using Vector3 = UnityEngine.Vector3;
 
-[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer),typeof(MeshCollider))]
 public class Chunk : MonoBehaviour {
 
     public const int Width = 16, Height = 64, Depth = 16;
     BlockType[] blockList;
     MeshFilter meshFilter;
+    MeshCollider meshCollider; 
+    [HideInInspector] public Vector3Int coordinate;
+    [HideInInspector] public Vector3Int position;
+    ChunkGen world;
 
-    // Start is called before the first frame update
-    void Start() {
-        Initialize(BlockType.None, null);
-        SetBlock(new Vector3Int(1,1,1),BlockType.Block);
-        Debug.Log(GetBlock(new Vector3Int(0,1,0)));
-        ConstructMesh();
-    }
-
-    public void Initialize(BlockType initBlock, Material mat) {
+    public void Initialize(BlockType initBlock, Material mat,Vector3Int chunkPos, Vector3Int chunkCoord,ChunkGen chunkGen) {
+        position = chunkPos;
+        coordinate = chunkCoord;
+        world = chunkGen;
+        
         blockList = new BlockType[Width * Height * Depth];
         for (int i = 0; i < blockList.Length; i++) {
             blockList[i] = initBlock;
         }
 
-        //GetComponent<MeshRenderer>().material = mat;
+        GetComponent<MeshRenderer>().material = mat;
         meshFilter = GetComponent<MeshFilter>();
+        meshCollider = GetComponent<MeshCollider>();
         
         Debug.Log("initialize");
     }
@@ -40,63 +41,29 @@ public class Chunk : MonoBehaviour {
             Vector3Int blockPos = new Vector3Int(x, y, z);
             if (GetBlock(blockPos) == BlockType.Block) {
                 
-                if (GetBlock(blockPos + Vector3Int.up) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.UpFaceVertices(blockPos));
+                for (int i = 0; i < BlockMeshData.directions.Length; i++) {
+                    Vector3Int faceDirection = BlockMeshData.directions[i];
                     
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.up);
+                    if (CoordInBound(faceDirection + blockPos)) {
+                        if (GetBlock(faceDirection + blockPos) == BlockType.None) {
+                            triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
+                            vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
+
+                            for (int j = 0; j < 4; j++) {
+                                normals.Add(faceDirection);
+                            }
+                        }
                     }
-                }
-                
-                if (GetBlock(blockPos + Vector3Int.down) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.DownFaceVertices(blockPos));
-                    
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.down);
-                    }
-                }
-                
-                if (GetBlock(blockPos + Vector3Int.forward) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.FrontFaceVertices(blockPos));
-                    
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.forward);
-                    }
-                }
-                
-                if (GetBlock(blockPos + Vector3Int.back) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.BackFaceVertices(blockPos));
-                    
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.back);
-                    }
-                }
-                
-                if (GetBlock(blockPos + Vector3Int.right) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.RightFaceVertices(blockPos));
-                    
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.right);
-                    }
-                }
-                
-                if (GetBlock(blockPos + Vector3Int.left) == BlockType.None) {
-                    triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
-                    vertices.AddRange(BlockMeshData.LeftFaceVertices(blockPos));
-                    
-                    //Normals
-                    for (int i = 0; i < 4; i++) {
-                        normals.Add(Vector3.left);
+                    else {
+                        Vector3Int globalBlockPos = faceDirection + blockPos + position;
+                        if (world.GetBlock(globalBlockPos) == BlockType.None) {
+                            triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
+                            vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
+
+                            for (int j = 0; j < 4; j++) {
+                                normals.Add(faceDirection);
+                            }
+                        }
                     }
                 }
             }
@@ -110,17 +77,26 @@ public class Chunk : MonoBehaviour {
         mesh.normals = normals.ToArray();
         
         meshFilter.mesh = mesh;
+        meshCollider.sharedMesh = mesh;
         
         Debug.Log("mesh constructed");
     }
 
     public BlockType GetBlock(Vector3Int blockPos) {
-        int index = blockPos.x + blockPos.y * Width + blockPos.z * Width * Height;
-        return blockList[index];
+        if (CoordInBound(blockPos)) {
+            int index = blockPos.x + blockPos.y * Width + blockPos.z * Width * Height;
+            return blockList[index];
+        }
+        return BlockType.None;
     }
 
     public void SetBlock(Vector3Int blockPos, BlockType block) {
         int index = blockPos.x + blockPos.y * Width + blockPos.z * Width * Height;
         blockList[index] = block;
+    }
+
+    bool CoordInBound(Vector3Int blockPos) {
+        return blockPos.x >= 0 && blockPos.x < Width && blockPos.y >= 0 && blockPos.y < Height && blockPos.z >= 0 &&
+               blockPos.z < Depth;
     }
 }
