@@ -7,8 +7,8 @@ public class ChunkGen : MonoBehaviour {
     Dictionary<Vector3Int, Chunk> chunkDicitionary = new Dictionary<Vector3Int, Chunk>();
     List<Chunk> chunkList = new List<Chunk>();
 
-    int width = 16;
-    int depth = 16;
+    int width = 2;
+    int depth = 2;
 
     public Material chunkMat;
     
@@ -32,7 +32,8 @@ public class ChunkGen : MonoBehaviour {
                 chunkDicitionary.TryAdd(chunkCoord, chunk);
                 chunkList.Add(chunk);
 
-                chunk.Initialize(BlockType.Block, chunkMat, chunkPosition, chunkCoord,this);
+                chunk.Initialize(BlockType.None, chunkMat, chunkPosition, chunkCoord,this);
+                chunk.GenerateBlocks();
             }
         }   
     }
@@ -58,5 +59,43 @@ public class ChunkGen : MonoBehaviour {
         }
 
         return BlockType.None;
+    }
+
+    public void SetBlock(Vector3Int globalBlockPos, BlockType block) {
+        Chunk chunk = GetChunk(globalBlockPos);
+        if (chunk != null) {
+            Vector3Int localPos = globalBlockPos - chunk.position;
+            chunk.SetBlock(localPos,block);
+        }
+    }
+
+    public void PlaceTree(Vector3Int globalblockPos) {
+        // generate logs 
+        int treeLenght = Random.Range(2, 5);
+        for (int i = 0; i < treeLenght; i++) {
+            SetBlock(globalblockPos + Vector3Int.up * i,BlockType.Block);
+        }
+
+        // generate leafs
+        int leafTop = Random.Range(2, 4);
+        for (int z = -1; z <= 1; z++) {
+            for (int x = -1; x <= 1; x++) {
+                for (int y = 0; y < leafTop; y++) {
+                    Vector3Int leafBlockPos = new Vector3Int(x, y, z) + (globalblockPos + Vector3Int.up * treeLenght);
+                    SetBlock(leafBlockPos,BlockType.Block);
+                    if (y == leafTop - 1) {
+                        if (z % 2 != 0) {
+                            if (x % 2 != 0) {
+                                SetBlock(leafBlockPos, BlockType.None);
+                            }
+                        }
+                    }
+                }
+            } 
+        }
+        
+        SetBlock(globalblockPos + (Vector3Int.up * (int)(leafTop + treeLenght )),BlockType.Block);
+        
+        
     }
 }

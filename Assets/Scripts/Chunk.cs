@@ -38,17 +38,25 @@ public class Chunk : MonoBehaviour {
         for (int x = 0; x < Width; x++)
         for (int z = 0; z < Depth; z++)
         for (int y = 0; y < Height; y++) {
+            
             Vector3Int blockPos = new Vector3Int(x, y, z);
+            
             if (GetBlock(blockPos) == BlockType.Block) {
                 
+                //Check each faces of the blocks
                 for (int i = 0; i < BlockMeshData.directions.Length; i++) {
                     Vector3Int faceDirection = BlockMeshData.directions[i];
                     
+                    //Check is the blocks are in edge of the chunk
+                    //Try to get neighbor chunk of block data
                     if (CoordInBound(faceDirection + blockPos)) {
+                        
                         if (GetBlock(faceDirection + blockPos) == BlockType.None) {
+                            
                             triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
                             vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
 
+                            // normals
                             for (int j = 0; j < 4; j++) {
                                 normals.Add(faceDirection);
                             }
@@ -57,9 +65,11 @@ public class Chunk : MonoBehaviour {
                     else {
                         Vector3Int globalBlockPos = faceDirection + blockPos + position;
                         if (world.GetBlock(globalBlockPos) == BlockType.None) {
+                            
                             triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
                             vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
 
+                            // normals
                             for (int j = 0; j < 4; j++) {
                                 normals.Add(faceDirection);
                             }
@@ -79,7 +89,6 @@ public class Chunk : MonoBehaviour {
         meshFilter.mesh = mesh;
         meshCollider.sharedMesh = mesh;
         
-        Debug.Log("mesh constructed");
     }
 
     public BlockType GetBlock(Vector3Int blockPos) {
@@ -95,8 +104,21 @@ public class Chunk : MonoBehaviour {
         blockList[index] = block;
     }
 
-    bool CoordInBound(Vector3Int blockPos) {
+    public bool CoordInBound(Vector3Int blockPos) {
         return blockPos.x >= 0 && blockPos.x < Width && blockPos.y >= 0 && blockPos.y < Height && blockPos.z >= 0 &&
                blockPos.z < Depth;
+    }
+
+    public void GenerateBlocks() {
+        for (int x = 0; x < Width; x++) {
+            for (int z = 0; z < Depth; z++) {
+                for (int y = 0; y < Height; y++) {
+                    if (y < 3) {
+                        Vector3Int blockPos = new Vector3Int(x, y, z);
+                        SetBlock(blockPos,BlockType.Block);
+                    }
+                }
+            }
+        }
     }
 }
