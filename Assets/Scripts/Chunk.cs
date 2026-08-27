@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using Vector3 = UnityEngine.Vector3;
 
@@ -34,6 +35,7 @@ public class Chunk : MonoBehaviour {
         List<Vector3> vertices = new List<Vector3>();
         List<int> triangles = new List<int>();
         List<Vector3> normals = new List<Vector3>();
+        List<Color> colors = new List<Color>();
 
         for (int x = 0; x < Width; x++)
         for (int z = 0; z < Depth; z++)
@@ -42,7 +44,8 @@ public class Chunk : MonoBehaviour {
             Vector3Int blockPos = new Vector3Int(x, y, z);
             
             if (GetBlock(blockPos) == BlockType.Block) {
-                
+
+                Color blockColor = world.terrainColorGradient.Evaluate((float)y / Height);
                 //Check each faces of the blocks
                 for (int i = 0; i < BlockMeshData.directions.Length; i++) {
                     Vector3Int faceDirection = BlockMeshData.directions[i];
@@ -55,6 +58,7 @@ public class Chunk : MonoBehaviour {
                             
                             triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
                             vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
+                            colors.AddRange(BlockMeshData.GetFaceColor(blockColor));
 
                             // normals
                             for (int j = 0; j < 4; j++) {
@@ -68,6 +72,7 @@ public class Chunk : MonoBehaviour {
                             
                             triangles.AddRange(BlockMeshData.FaceTrianglution(vertices.Count));
                             vertices.AddRange(BlockMeshData.GetFaceVertices(i,blockPos));
+                            colors.AddRange(BlockMeshData.GetFaceColor(blockColor));
 
                             // normals
                             for (int j = 0; j < 4; j++) {
@@ -85,6 +90,7 @@ public class Chunk : MonoBehaviour {
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.normals = normals.ToArray();
+        mesh.colors = colors.ToArray();
         
         meshFilter.mesh = mesh;
         meshCollider.sharedMesh = mesh;
@@ -112,11 +118,16 @@ public class Chunk : MonoBehaviour {
     public void GenerateBlocks() {
         for (int x = 0; x < Width; x++) {
             for (int z = 0; z < Depth; z++) {
-                for (int y = 0; y < Height; y++) {
-                    if (y < 3) {
-                        Vector3Int blockPos = new Vector3Int(x, y, z);
-                        SetBlock(blockPos,BlockType.Block);
-                    }
+                //int amplitude = (int)(Mathf.PerlinNoise((x + position.x) / 50f, (z + position.z) / 50f) * Height);
+                float noise = OctaveNoise.Value(x + position.x, z + position.z, 5, 70f, 2f, 0.5f,Vector2.zero);
+                int amplitude = (int)(noise * Height);
+                for (int y = 0; y < amplitude; y++) {
+                    Vector3Int blockPos = new Vector3Int(x, y, z);
+                    SetBlock(blockPos, BlockType.Block);
+                    // if (y < 3) {
+                    //     Vector3Int blockPos = new Vector3Int(x, y, z);
+                    //     SetBlock(blockPos,BlockType.Block);
+                    // }
                 }
             }
         }

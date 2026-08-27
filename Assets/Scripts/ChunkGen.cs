@@ -7,10 +7,11 @@ public class ChunkGen : MonoBehaviour {
     Dictionary<Vector3Int, Chunk> chunkDicitionary = new Dictionary<Vector3Int, Chunk>();
     List<Chunk> chunkList = new List<Chunk>();
 
-    int width = 2;
-    int depth = 2;
+    int width = 5;
+    int depth = 5;
 
     public Material chunkMat;
+    public Gradient terrainColorGradient;
     
     // Start is called before the first frame update
     void Start()

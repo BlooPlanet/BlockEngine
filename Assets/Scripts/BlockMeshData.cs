@@ -95,4 +95,13 @@ public static class BlockMeshData {
             new Vector3(direction.x, direction.y,direction.z),
         };
     }
+
+    public static Color[] GetFaceColor(Color col) {
+        return new[] {
+            col,
+            col,
+            col,
+            col,
+        };
+    }
 }
